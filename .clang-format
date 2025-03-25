@@ -1,0 +1,16 @@
+IndentWidth: 4
+TabWidth: 4
+UseTab: ForContinuationAndIndentation
+ColumnLimit: 120
+
+AlignEscapedNewlines: DontAlign
+AlignOperands: DontAlign
+AllowShortCaseLabelsOnASingleLine: True
+AllowShortFunctionsOnASingleLine: Inline
+BreakAfterReturnType: ExceptShortType
+BreakBeforeBraces: Stroustrup
+BreakBeforeTernaryOperators: True
+BreakConstructorInitializers: AfterColon
+BreakTemplateDeclarations: Yes
+PackConstructorInitializers: CurrentLine
+PenaltyIndentedWhitespace: 100
