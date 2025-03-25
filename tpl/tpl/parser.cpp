@@ -92,13 +92,21 @@ class Parser {
 				},
 				[](auto const &) -> std::unique_ptr<Expr> { throw std::runtime_error{std::format("Invalid")}; },
 			},
-			*_tokenizer);
+			current());
+	}
+
+	lex::Token const &current()
+	{
+		if (_tokenizer == std::default_sentinel) {
+			throw std::runtime_error{std::format("Unexpected end of input")};
+		}
+		return *_tokenizer;
 	}
 
 	template <class T>
 	void eat(char const *token_names)
 	{
-		if (T *value = std::get_if<T>(*_tokenizer)) {
+		if (T *value = std::get_if<T>(current())) {
 			++_tokenizer;
 		}
 		throw std::runtime_error{std::format("Expected {}", token_names)};
