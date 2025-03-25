@@ -24,7 +24,7 @@ class Parser {
 	std::unique_ptr<Expr> parse_expr()
 	{
 		auto lhs = parse_atom();
-		if (_tokenizer != std::default_sentinel) {
+		if (_tokenizer != std::default_sentinel and not match<lex::RParen>()) {
 			auto func = parse_atom();
 			auto rhs = parse_expr();
 			return std::make_unique<BinaryOp>(std::move(func), std::move(lhs), std::move(rhs));
@@ -46,6 +46,12 @@ class Parser {
 					++_tokenizer;
 					return ret;
 				},
+				[&](lex::LParen const &) -> std::unique_ptr<Expr> {
+					++_tokenizer;
+					auto ret = parse_expr();
+					eat<lex::RParen>("closing parenthesis");
+					return ret;
+				},
 				[](auto const &) -> std::unique_ptr<Expr> { throw std::runtime_error{std::format("Invalid")}; },
 			},
 			current());
@@ -60,10 +66,17 @@ class Parser {
 	}
 
 	template <class T>
+	bool match()
+	{
+		return std::holds_alternative<T>(current());
+	}
+
+	template <class T>
 	void eat(char const *token_names)
 	{
-		if (T *value = std::get_if<T>(current())) {
+		if (match<T>()) {
 			++_tokenizer;
+			return;
 		}
 		throw std::runtime_error{std::format("Expected {}", token_names)};
 	}
