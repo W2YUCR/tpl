@@ -15,11 +15,13 @@ export namespace tpl::ast {
 
 struct Number;
 struct Variable;
+struct BinaryOp;
 
 struct ExprVisitor {
 	virtual ~ExprVisitor() = default;
 	virtual void visit(Number &) = 0;
 	virtual void visit(Variable &) = 0;
+	virtual void visit(BinaryOp &) = 0;
 };
 
 struct Expr {
@@ -44,24 +46,49 @@ struct Variable : ExprCRTP<Variable> {
 	std::string name;
 };
 
+struct BinaryOp : ExprCRTP<BinaryOp> {
+	BinaryOp(std::unique_ptr<Expr> func, std::unique_ptr<Expr> lhs, std::unique_ptr<Expr> rhs) :
+		func{std::move(func)},
+		lhs{std::move(lhs)},
+		rhs{std::move(rhs)}
+	{
+	}
+	std::unique_ptr<Expr> func;
+	std::unique_ptr<Expr> lhs;
+	std::unique_ptr<Expr> rhs;
+};
+
 class Parser {
   public:
 	Parser(lex::Tokenizer tokenizer) : _tokenizer{std::move(tokenizer)} {}
 
-	std::unique_ptr<Expr> parse() { return parse_atom(); }
+	std::unique_ptr<Expr> parse() { return parse_expr(); }
 
   private:
+	std::unique_ptr<Expr> parse_expr()
+	{
+		auto lhs = parse_atom();
+		if (_tokenizer != std::default_sentinel) {
+			auto func = parse_atom();
+			auto rhs = parse_expr();
+			return std::make_unique<BinaryOp>(std::move(func), std::move(lhs), std::move(rhs));
+		}
+		return lhs;
+	}
+
 	std::unique_ptr<Expr> parse_atom()
 	{
 		return std::visit(
 			overloaded{
 				[&](lex::Identifier const &ident) -> std::unique_ptr<Expr> {
+					auto ret = std::make_unique<Variable>(ident.name);
 					++_tokenizer;
-					return std::make_unique<Variable>(ident.name);
+					return ret;
 				},
 				[&](lex::Number const &number) -> std::unique_ptr<Expr> {
+					auto ret = std::make_unique<Number>(number.value);
 					++_tokenizer;
-					return std::make_unique<Number>(number.value);
+					return ret;
 				},
 				[](auto const &) -> std::unique_ptr<Expr> { throw std::runtime_error{std::format("Invalid")}; },
 			},

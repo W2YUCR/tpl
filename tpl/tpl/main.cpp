@@ -4,13 +4,12 @@ module;
 #include <print>
 #include <string>
 #include <string_view>
-#include <variant>
 
 export module tpl;
 
 import tpl.tokenizer;
 import tpl.parser;
-import tpl.interpreter;
+import tpl.runtime;
 import tpl.util;
 
 namespace {
@@ -31,12 +30,7 @@ int repl()
 
 			auto ast = parser.parse();
 
-			std::visit(
-				tpl::overloaded{
-					[](std::int64_t const &number) { std::println("{}", number); },
-					[](std::string const &str) { std::println("{}", str); },
-				},
-				interpreter.interpret(*ast));
+			std::println("{}", interpreter.interpret(*ast));
 		}
 		catch (std::exception &ex) {
 			std::println("Error: {}", ex.what());
@@ -52,6 +46,6 @@ int main(int argc, char const *argv[])
 	switch (argc) {
 	case 1: return repl();
 	case 2: return run(argv[1]);
-	case 3: std::println(stderr, "Usage: tpl [filename]"); return EXIT_FAILURE;
+	default: std::println(stderr, "Usage: tpl [filename]"); return EXIT_FAILURE;
 	}
 }

@@ -40,25 +40,22 @@ class Tokenizer {
 				++_iter;
 				continue;
 			}
-			if (std::isalpha(*_iter) != 0) {
-				get_identifier();
+			if (*_iter == '(') {
+				++_iter;
+				_token = LParen{};
+				return *this;
+			}
+			if (*_iter == ')') {
+				++_iter;
+				_token = RParen{};
 				return *this;
 			}
 			if ('0' <= *_iter and *_iter <= '9') {
 				get_number();
 				return *this;
 			}
-			switch (*_iter) {
-			case '(':
-				++_iter;
-				_token = LParen{};
-				return *this;
-			case ')':
-				++_iter;
-				_token = RParen{};
-				return *this;
-			default: throw std::runtime_error{std::format("Unexpected character {}", *_iter)};
-			}
+			get_identifier();
+			return *this;
 		}
 		_at_end = true;
 		return *this;
@@ -66,7 +63,10 @@ class Tokenizer {
 
 	void get_identifier()
 	{
-		std::string_view name = take_while([](char chr) { return std::isalnum(chr) != 0; });
+		std::string_view name = take_while([](char chr) {
+			return not std::isspace(chr) and chr != '(' and chr != ')';
+		});
+
 		_token = Identifier{std::string{name}};
 	}
 
@@ -102,5 +102,4 @@ class Tokenizer {
 };
 
 static_assert(std::input_iterator<Tokenizer>);
-
 }; // namespace tpl::lex
