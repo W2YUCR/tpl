@@ -15,6 +15,5 @@ add_library(Runtime)
 target_sources(Runtime PUBLIC FILE_SET CXX_MODULES FILES interpreter.cpp value.cpp)
 target_link_libraries(Runtime PRIVATE Ast Util)
 
-add_executable(tpl)
-target_sources(tpl PUBLIC FILE_SET CXX_MODULES FILES main.cpp)
+add_executable(tpl main.cpp)
 target_link_libraries(tpl PRIVATE Tokenizer Parser Runtime Util)

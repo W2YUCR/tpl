@@ -1,11 +1,7 @@
-module;
-
 #include <iostream>
 #include <print>
 #include <string>
 #include <string_view>
-
-export module tpl;
 
 import tpl.tokenizer;
 import tpl.parser;
