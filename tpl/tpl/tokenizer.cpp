@@ -11,7 +11,7 @@ module;
 
 export module tpl.tokenizer;
 
-export namespace tpl {
+export namespace tpl::lex {
 
 struct Identifier {
 	std::string name;
@@ -103,4 +103,4 @@ class Tokenizer {
 
 static_assert(std::input_iterator<Tokenizer>);
 
-}; // namespace tpl
+}; // namespace tpl::lex

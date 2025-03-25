@@ -4,12 +4,14 @@ module;
 #include <print>
 #include <string>
 #include <string_view>
+#include <variant>
 
 export module tpl;
 
 import tpl.tokenizer;
 import tpl.parser;
 import tpl.interpreter;
+import tpl.util;
 
 namespace {
 
@@ -21,10 +23,20 @@ int run(std::string_view filename)
 int repl()
 {
 	std::string line;
+	tpl::runtime::Interpreter interpreter;
 	while (std::print("> "), std::getline(std::cin, line)) {
 		try {
-			tpl::Tokenizer tokenizer{line.data(), line.data() + line.size()};
+			tpl::lex::Tokenizer tokenizer{line.data(), line.data() + line.size()};
 			tpl::ast::Parser parser{tokenizer};
+
+			auto ast = parser.parse();
+
+			std::visit(
+				tpl::overloaded{
+					[](std::int64_t const &number) { std::println("{}", number); },
+					[](std::string const &str) { std::println("{}", str); },
+				},
+				interpreter.interpret(*ast));
 		}
 		catch (std::exception &ex) {
 			std::println("Error: {}", ex.what());
