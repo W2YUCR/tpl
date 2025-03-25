@@ -2,6 +2,7 @@ module;
 
 #include <format>
 #include <functional>
+#include <memory>
 #include <string>
 #include <variant>
 
@@ -14,7 +15,7 @@ export namespace tpl::runtime {
 
 struct Value;
 
-using FunctionValue = std::function<Value(ast::Expr &, ast::Expr &)>;
+using FunctionValue = std::function<Value(std::unique_ptr<ast::Expr> &, std::unique_ptr<ast::Expr> &)>;
 
 using ValueT = std::variant<std::monostate, double, std::string, FunctionValue>;
 
