@@ -3,7 +3,6 @@ module;
 #include <cassert>
 #include <charconv>
 #include <cstddef>
-#include <cstdint>
 #include <iterator>
 #include <string>
 #include <variant>
@@ -17,7 +16,7 @@ struct Identifier {
 };
 
 struct Number {
-	std::int64_t value;
+	double value;
 };
 
 struct LParen {};
@@ -62,29 +61,29 @@ class Tokenizer {
 
 	void get_identifier()
 	{
-		std::string_view name = take_while([](char chr) {
-			return not std::isspace(chr) and chr != '(' and chr != ')';
-		});
-
-		_token = Identifier{std::string{name}};
+		char const *start = _iter;
+		while (_iter != _end and not std::isspace(*_iter) and *_iter != '(' and *_iter != ')') {
+			++_iter;
+		}
+		_token = Identifier{std::string{start, _iter}};
 	}
 
 	void get_number()
 	{
-		std::string_view lexeme = take_while([](char chr) { return '0' <= chr and chr <= '9'; });
-		std::int64_t value;
-		auto [_, ec] = std::from_chars(lexeme.data(), lexeme.data() + lexeme.size(), value);
-		assert(ec == std::errc{});
-		_token = Number{value};
-	}
-
-	std::string_view take_while(bool predicate(char))
-	{
 		char const *start = _iter;
-		while (_iter != _end and predicate(*_iter)) {
+		while (_iter != _end and '0' <= *_iter and *_iter <= '9') {
 			++_iter;
 		}
-		return {start, _iter};
+		if (_iter != _end and *_iter == '.') {
+			++_iter;
+			while (_iter != _end and '0' <= *_iter and *_iter <= '9') {
+				++_iter;
+			}
+		}
+		double value;
+		auto [_, ec] = std::from_chars(start, _iter, value);
+		assert(ec == std::errc{});
+		_token = Number{value};
 	}
 
 	void operator++(int) { ++*this; }

@@ -31,8 +31,8 @@ struct ExprCRTP : Expr {
 };
 
 struct Number : ExprCRTP<Number> {
-	Number(std::int64_t value) : value{value} {}
-	std::int64_t value;
+	Number(double value) : value{value} {}
+	double value;
 };
 
 struct Variable : ExprCRTP<Variable> {

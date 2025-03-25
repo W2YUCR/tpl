@@ -16,7 +16,7 @@ struct Value;
 
 using FunctionValue = std::function<Value(ast::Expr &, ast::Expr &)>;
 
-using ValueT = std::variant<std::int64_t, std::string, FunctionValue>;
+using ValueT = std::variant<std::monostate, double, std::string, FunctionValue>;
 
 struct Value : ValueT {
 	using ValueT::variant;
@@ -30,7 +30,8 @@ struct std::formatter<tpl::runtime::Value> : std::formatter<std::string_view> {
 	{
 		return std::visit(
 			tpl::overloaded{
-				[&](std::int64_t const &number) { return std::format_to(ctx.out(), "{}", number); },
+				[&](std::monostate const &) { return std::format_to(ctx.out(), "nil"); },
+				[&](double const &number) { return std::format_to(ctx.out(), "{}", number); },
 				[&](std::string const &str) { return std::format_to(ctx.out(), "{}", str); },
 				[&](tpl::runtime::FunctionValue const &) { return std::format_to(ctx.out(), "function"); },
 			},
