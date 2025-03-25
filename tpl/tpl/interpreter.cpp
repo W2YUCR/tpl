@@ -10,7 +10,7 @@ module;
 
 export module tpl.runtime;
 
-import tpl.parser;
+import tpl.ast;
 import tpl.util;
 
 export import :value;
@@ -29,22 +29,11 @@ class Interpreter : public ast::ExprVisitor {
 	void visit(ast::Variable &var) override { values.push(scope[var.name]); }
 	void visit(ast::BinaryOp &expr) override
 	{
-		expr.func->accept(*this);
-		auto center = values.top();
-		values.pop();
+		Value center = eval(*expr.func);
 
-		if (auto *ptr = std::get_if<std::function<Value(Value, Value)>>(&center)) {
-			auto func = std::move(*ptr);
-
-			expr.lhs->accept(*this);
-			auto lhs = std::move(values.top());
-			values.pop();
-
-			expr.rhs->accept(*this);
-			auto rhs = std::move(values.top());
-			values.pop();
-
-			values.push(func(std::move(lhs), std::move(rhs)));
+		if (FunctionValue *ptr = std::get_if<FunctionValue>(&center)) {
+			FunctionValue func = std::move(*ptr);
+			values.push(func(*expr.lhs, *expr.rhs));
 		}
 		else {
 			throw std::runtime_error{std::format("Attempted to call a non-function: {}", center)};
@@ -53,7 +42,8 @@ class Interpreter : public ast::ExprVisitor {
 
   private:
 	std::map<std::string, Value> scope{
-		{"+", [](Value lhs, Value rhs) -> Value {
+		{"+",
+		 [&](ast::Expr &lhs, ast::Expr &rhs) -> Value {
 			 return std::visit(
 				 overloaded{
 					 [](std::int64_t lhs, std::int64_t rhs) -> Value { return lhs + rhs; },
@@ -61,8 +51,28 @@ class Interpreter : public ast::ExprVisitor {
 						 throw std::runtime_error{std::format("Cannot add {} and {}", lhs, rhs)};
 					 },
 				 },
-				 lhs, rhs);
-		 }}};
+				 eval(lhs), eval(rhs));
+		 }},
+		{
+			"=",
+			[&](ast::Expr &lhs, ast::Expr &rhs) -> Value {
+				if (auto *var = dynamic_cast<ast::Variable *>(&lhs)) {
+					return scope[var->name] = eval(rhs);
+				}
+				else {
+					throw std::runtime_error{std::format("The LHS is not a variable")};
+				}
+			},
+		}};
+
+	Value eval(ast::Expr &expr)
+	{
+		expr.accept(*this);
+		Value value = values.top();
+		values.pop();
+		return value;
+	}
+
 	std::stack<Value> values;
 };
 
