@@ -3,6 +3,7 @@ module;
 #include <cassert>
 #include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <iterator>
 #include <string>
 #include <variant>
