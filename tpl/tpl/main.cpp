@@ -22,8 +22,13 @@ int repl()
 {
 	std::string line;
 	while (std::print("> "), std::getline(std::cin, line)) {
-		tpl::Tokenizer tokenizer{line.data(), line.data() + line.size()};
-		tpl::ast::Parser parser{tokenizer};
+		try {
+			tpl::Tokenizer tokenizer{line.data(), line.data() + line.size()};
+			tpl::ast::Parser parser{tokenizer};
+		}
+		catch (std::exception &ex) {
+			std::println("Error: {}", ex.what());
+		}
 	}
 	return EXIT_SUCCESS;
 }
