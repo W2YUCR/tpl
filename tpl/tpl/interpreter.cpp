@@ -55,10 +55,10 @@ class Interpreter : public ast::ExprVisitor {
 	}
 
 	void visit(ast::Number &number) override { values.emplace(number.value); }
-	void visit(ast::Variable &var) override { values.push(scope->lookup(var.name)); }
+	void visit(ast::Variable &var) override { values.emplace(std::reference_wrapper<Value>{scope->lookup(var.name)}); }
 	void visit(ast::BinaryOp &expr) override
 	{
-		Value center = eval(*expr.func);
+		Value center = eval(*expr.func).unwrap();
 
 		if (FunctionValue *ptr = std::get_if<FunctionValue>(&center)) {
 			FunctionValue func = std::move(*ptr);
@@ -84,8 +84,8 @@ class Interpreter : public ast::ExprVisitor {
 					throw std::runtime_error{std::format("Cannot call {} with {} and {}", _name, lhs, rhs)};
 				},
 				},
-				_interpreter->eval(*lhs),
-				_interpreter->eval(*rhs));
+				_interpreter->eval(*lhs).unwrap(),
+				_interpreter->eval(*rhs).unwrap());
 		};
 
 	  private:
@@ -100,13 +100,32 @@ class Interpreter : public ast::ExprVisitor {
 			{"-", AutoOp<std::minus<>>{this, "minus"}},
 			{"/", AutoOp<std::divides<>>{this, "divide"}},
 			{"*", AutoOp<std::multiplies<>>{this, "multiply"}},
+			{"object", std::map<std::string, Value>{}},
+			{"of",
+			 [&](std::unique_ptr<ast::Expr> &lhs, std::unique_ptr<ast::Expr> &rhs) -> Value {
+				 auto *member = dynamic_cast<ast::Variable *>(lhs.get());
+				 if (member == nullptr) {
+					 throw std::runtime_error{std::format("The LHS is not a variable")};
+				 }
+				 Value object = eval(*rhs);
+				 auto *ref = std::get_if<std::reference_wrapper<Value>>(&object);
+				 if (ref == nullptr) {
+					 throw std::runtime_error{std::format("The RHS is not a reference (RHS = {})", object)};
+				 }
+				 auto *map = std::get_if<std::map<std::string, Value>>(&ref->get().unwrap());
+				 if (map == nullptr) {
+					 throw std::runtime_error{std::format("The RHS is not an object (RHS = {})", ref->get())};
+				 }
+				 return std::reference_wrapper<Value>{(*map)[member->name]};
+			 }},
 			{"=",
 			 [&](std::unique_ptr<ast::Expr> &lhs, std::unique_ptr<ast::Expr> &rhs) -> Value {
-				 if (auto *var = dynamic_cast<ast::Variable *>(lhs.get())) {
-					 return scope->lookup(var->name) = eval(*rhs);
+				 Value ref = eval(*lhs);
+				 if (auto *var = std::get_if<std::reference_wrapper<Value>>(&ref)) {
+					 return var->get() = eval(*rhs);
 				 }
 				 else {
-					 throw std::runtime_error{std::format("The LHS is not a variable")};
+					 throw std::runtime_error{std::format("The LHS is not assignable")};
 				 }
 			 }},
 			{"func",
@@ -115,8 +134,8 @@ class Interpreter : public ast::ExprVisitor {
 				 return std::function(
 					 [this, body](std::unique_ptr<ast::Expr> &lhs, std::unique_ptr<ast::Expr> &rhs) -> Value {
 						 scope = std::make_unique<Scope>(std::move(scope));
-						 scope->insert("LHS", eval(*lhs));
-						 scope->insert("RHS", eval(*rhs));
+						 scope->insert("LHS", eval(*lhs).unwrap());
+						 scope->insert("RHS", eval(*rhs).unwrap());
 						 auto value = eval(*body);
 						 scope = std::move(scope->parent());
 						 return value;

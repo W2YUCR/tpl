@@ -26,7 +26,7 @@ int repl()
 
 			auto ast = parser.parse();
 
-			std::println("{}", interpreter.interpret(*ast));
+			std::println("{}", interpreter.interpret(*ast).unwrap());
 		}
 		catch (std::exception &ex) {
 			std::println("Error: {}", ex.what());
